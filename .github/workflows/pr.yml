@@ -1,32 +1,81 @@
-name: Pull-request
+name: Pull Request Validation
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    # Add (or remove) ignores to avoid wasting CI minutes on non-code changes
+    # paths-ignore:
+    #   - 'docs/**'
+    #   - '*.md'
+
+concurrency:
+  group: pr-${{ github.event.pull_request.head.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   build:
+    # Skip running on draft PRs until they are marked ready
+    if: ${{ github.event.pull_request.draft == false }}
     runs-on: ubuntu-latest
+
+    env:
+      # Set once at the job level instead of per-step
+      NODE_AUTH_TOKEN: ${{ secrets.CWI_SECRET_GITHUB_TOKEN_DISTRIBUTOR }}
+
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Need all history to set the correct modified dates
-      - uses: actions/setup-node@v1
+          # Only use fetch-depth: 0 if you really need full history (e.g. for the modified dates step)
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
         with:
-          node-version: '12.x'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: 'caseware'
-      - name: Set correct modified dates
+            # Prefer current LTS unless project requires 12.x (which is EOL)
+            node-version: '20.x'
+            # If you have a .nvmrc you can replace the above with: node-version-file: '.nvmrc'
+            registry-url: 'https://npm.pkg.github.com'
+            scope: 'caseware'
+            cache: 'yarn'
+
+      # OPTIONAL: only keep if some downstream tooling relies on file mtimes.
+      # Otherwise remove for a faster pipeline.
+      - name: Normalize file modified dates (optional)
+        if: ${{ always() && env.RESTORE_MOD_DATES == 'true' }}
         run: |
-          git ls-tree -r --name-only HEAD | while read filename; do
-          unixtime=$(git log -1 --format="%at" -- "${filename}")
-          touchtime=$(date -d @$unixtime +'%Y%m%d%H%M.%S')
-          touch -t ${touchtime} "${filename}"
+          git ls-tree -r --name-only HEAD | while read -r filename; do
+            unixtime=$(git log -1 --format="%at" -- "${filename}")
+            touchtime=$(date -d @"$unixtime" +'%Y%m%d%H%M.%S')
+            touch -t "${touchtime}" "${filename}"
           done
-      - name: Set private.pem
-        run: echo '${{ secrets.REPORT_PRIVATE_KEY }}' > private.pem
+
+      - name: Write private key
+        # Using printf avoids adding a trailing newline that echo might
+        run: |
+          printf '%s' "${{ secrets.REPORT_PRIVATE_KEY }}" > private.pem
+          chmod 600 private.pem
+
+      - name: Install dependencies
+        run: |
+          yarn install --frozen-lockfile
+        # If you truly only need production deps, use: yarn install --frozen-lockfile --production
+        # but most test/evaluate steps need dev deps.
+
       - name: Evaluate report.enc
         run: npx @caseware/provider-bindings-tests evaluate
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.CWI_SECRET_GITHUB_TOKEN_DISTRIBUTOR }}
-      - run: yarn install --prod
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.CWI_SECRET_GITHUB_TOKEN_DISTRIBUTOR }}
+
+      # Example: run tests / lint (add as needed)
+      # - name: Lint
+      #   run: yarn lint
+      #
+      # - name: Test
+      #   run: yarn test --ci --reporters=default --reporters=jest-junit
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "Workflow completed with conclusion: ${{ job.status }}"
