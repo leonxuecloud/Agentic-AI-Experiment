@@ -15,62 +15,97 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  WORKING_DIRECTORY: .
   BUILD_OUTPUT_DIR: build
 
 jobs:
   build:
-    name: Build
+    name: Build (Node conditional)
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Detect lockfiles
+      - name: Detect Node project
+        id: detect
         shell: bash
         run: |
-          echo "Searching for lockfiles..."
-          find . -maxdepth 3 -type f \( -name package-lock.json -o -name yarn.lock -o -name pnpm-lock.yaml \) -print || true
+          set -euo pipefail
+          # Find first package.json (ignore node_modules if any)
+          FILE=$(git ls-files | grep -E '(^|/)(package\.json)$' | grep -v node_modules || true)
+          if [ -n "$FILE" ]; then
+            DIR=$(dirname "$FILE")
+            if [ "$DIR" = "." ]; then DIR="."; fi
+            echo "Found package.json at: $FILE (directory: $DIR)"
+            echo "has_node=true" >> "$GITHUB_OUTPUT"
+            echo "project_dir=$DIR" >> "$GITHUB_OUTPUT"
+            # Check for lockfile
+            if [ -f "$DIR/package-lock.json" ]; then
+              echo "has_lock=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "has_lock=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "No package.json found in repository."
+            echo "has_node=false" >> "$GITHUB_OUTPUT"
+            echo "project_dir=." >> "$GITHUB_OUTPUT"
+            echo "has_lock=false" >> "$GITHUB_OUTPUT"
+          fi
 
-      # Removed cache: npm because no lockfile currently exists.
+      - name: Display detection summary
+        run: |
+          echo "has_node = ${{ steps.detect.outputs.has_node }}"
+          echo "project_dir = ${{ steps.detect.outputs.project_dir }}"
+          echo "has_lock = ${{ steps.detect.outputs.has_lock }}"
+
       - name: Setup Node
+        if: steps.detect.outputs.has_node == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          # Only enable caching automatically if there is a lockfile (prevents unresolved path errors)
+          cache: ${{ steps.detect.outputs.has_lock == 'true' && 'npm' || '' }}
 
       - name: Show tool versions
+        if: steps.detect.outputs.has_node == 'true'
         run: |
           node -v
           npm -v
 
       - name: Install dependencies
-        working-directory: ${{ env.WORKING_DIRECTORY }}
+        if: steps.detect.outputs.has_node == 'true'
+        working-directory: ${{ steps.detect.outputs.project_dir }}
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f package-lock.json ]; then
-            echo "package-lock.json found -> using npm ci"
+          if [ "${{ steps.detect.outputs.has_lock }}" = "true" ]; then
+            echo "Using npm ci (lockfile present)."
             npm ci --no-audit --no-fund
           else
-            echo "No package-lock.json found -> using npm install (non-deterministic)"
+            echo "No package-lock.json; falling back to npm install (non-deterministic)."
             npm install --no-audit --no-fund
           fi
 
-      - name: Build
-        working-directory: ${{ env.WORKING_DIRECTORY }}
+      - name: Build (Node project)
+        if: steps.detect.outputs.has_node == 'true'
+        working-directory: ${{ steps.detect.outputs.project_dir }}
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf "${{ env.BUILD_OUTPUT_DIR }}"
-          mkdir -p "${{ env.BUILD_OUTPUT_DIR }}"
-          npm run build
-          if [ -d dist ] && [ "${{ env.BUILD_OUTPUT_DIR }}" != "dist" ]; then
-            cp -R dist/* "${{ env.BUILD_OUTPUT_DIR }}/" || true
+          rm -rf "${{ github.workspace }}/${{ env.BUILD_OUTPUT_DIR }}"
+          mkdir -p "${{ github.workspace }}/${{ env.BUILD_OUTPUT_DIR }}"
+          if npm run | grep -q '^  build'; then
+            echo "Running npm run build"
+            npm run build
+          else
+            echo "No build script found; copying source files (excluding node_modules) into build dir."
+            rsync -a --exclude 'node_modules' ./ "${{ github.workspace }}/${{ env.BUILD_OUTPUT_DIR }}/"
           fi
-          for f in additional_release_image_instructions.dockerfile deploy.env; do
-            [ -f "$f" ] && cp "$f" "${{ env.BUILD_OUTPUT_DIR }}/"
-          done
+          # If dist exists, merge it into build output
+          if [ -d dist ]; then
+            echo "Merging dist/ into build output"
+            rsync -a dist/ "${{ github.workspace }}/${{ env.BUILD_OUTPUT_DIR }}/"
+          fi
           echo "Pruning dev dependencies (best effort)..."
           if npm prune --omit=dev 2>/dev/null; then
             echo "Used: npm prune --omit=dev"
@@ -78,32 +113,43 @@ jobs:
             npm prune --production || true
           fi
 
+      - name: Create placeholder build (non-Node repo)
+        if: steps.detect.outputs.has_node != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "${{ env.BUILD_OUTPUT_DIR }}"
+          mkdir -p "${{ env.BUILD_OUTPUT_DIR }}"
+          echo "This repository has no package.json; generated placeholder artifact on $(date -u)." > "${{ env.BUILD_OUTPUT_DIR }}/README.txt"
+          echo "Repo tree snapshot:" >> "${{ env.BUILD_OUTPUT_DIR }}/README.txt"
+          git ls-files >> "${{ env.BUILD_OUTPUT_DIR }}/README.txt"
+
       - name: Validate build output
         shell: bash
         run: |
           set -euo pipefail
-          if [ ! -d "${{ env.WORKING_DIRECTORY }}/${{ env.BUILD_OUTPUT_DIR }}" ]; then
+          if [ ! -d "${{ env.BUILD_OUTPUT_DIR }}" ]; then
             echo "Build output directory missing."
             exit 1
           fi
-          COUNT=$(find "${{ env.WORKING_DIRECTORY }}/${{ env.BUILD_OUTPUT_DIR }}" -type f | wc -l | tr -d ' ')
+          COUNT=$(find "${{ env.BUILD_OUTPUT_DIR }}" -type f | wc -l | tr -d ' ')
           if [ "$COUNT" -eq 0 ]; then
             echo "No files produced in build output directory."
             exit 1
           fi
-          echo "Build produced $COUNT files."
+          echo "Build produced $COUNT file(s)."
 
       - name: Show build output (debug)
         if: ${{ success() }}
         shell: bash
         run: |
           echo "Build directory contents:"
-          find "${{ env.WORKING_DIRECTORY }}/${{ env.BUILD_OUTPUT_DIR }}" -maxdepth 2 -type f | sed 's|^|  - |'
+          find "${{ env.BUILD_OUTPUT_DIR }}" -maxdepth 3 -type f | sed 's|^|  - |'
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-${{ github.sha }}
-          path: ${{ env.WORKING_DIRECTORY }}/${{ env.BUILD_OUTPUT_DIR }}
+          path: ${{ env.BUILD_OUTPUT_DIR }}
           if-no-files-found: error
           retention-days: 7
