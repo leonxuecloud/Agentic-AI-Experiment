@@ -9,7 +9,6 @@ on:
 
 permissions:
   contents: read
-  packages: read
 
 concurrency:
   group: build-${{ github.ref_name }}
@@ -18,8 +17,6 @@ concurrency:
 env:
   WORKING_DIRECTORY: .
   BUILD_OUTPUT_DIR: build
-  NPM_REGISTRY_URL: https://npm.pkg.github.com
-  NPM_SCOPE: caseware
 
 jobs:
   build:
@@ -29,49 +26,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Detect lockfiles (diagnostic)
+      - name: Detect lockfiles
         shell: bash
         run: |
-          echo "Listing lockfiles at repo root and below:"
-          find . -maxdepth 3 -type f \( -name 'package-lock.json' -o -name 'pnpm-lock.yaml' -o -name 'yarn.lock' \) -print || true
+          echo "Searching for lockfiles..."
+          find . -maxdepth 3 -type f \( -name package-lock.json -o -name yarn.lock -o -name pnpm-lock.yaml \) -print || true
 
+      # Removed cache: npm because no lockfile currently exists.
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          # NOTE:
-          # The next line (cache-dependency-path) was removed because it caused:
-          #   'Error: Some specified paths were not resolved, unable to cache dependencies.'
-          # Only reintroduce it if you are SURE the path exists.
-          #
-          # If your lockfile is actually in a subdirectory (e.g. app/package-lock.json), uncomment and adjust:
-          # cache-dependency-path: app/package-lock.json
-          #
-          # If you use pnpm instead of npm:
-          # cache: pnpm
-          # And ensure pnpm-lock.yaml exists.
-          #
-          # If you use yarn classic:
-          # cache: yarn
-
-      - name: Verify lockfile (optional strict check)
-        shell: bash
-        run: |
-          set -euo pipefail
-          # Adjust this if your project lives in a subdirectory.
-            if [ ! -f "${{ env.WORKING_DIRECTORY }}/package-lock.json" ]; then
-              echo "WARNING: package-lock.json not found at ${{ env.WORKING_DIRECTORY }}."
-              echo "If you use a different lockfile (pnpm-lock.yaml or yarn.lock) adjust the workflow accordingly."
-              # Uncomment next line to fail hard instead of warn:
-              # exit 1
-            fi
 
       - name: Show tool versions
-        shell: bash
         run: |
           node -v
           npm -v
@@ -81,44 +49,33 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # If using pnpm or yarn, replace this command.
-          npm ci --no-audit --no-fund || npm install
+          if [ -f package-lock.json ]; then
+            echo "package-lock.json found -> using npm ci"
+            npm ci --no-audit --no-fund
+          else
+            echo "No package-lock.json found -> using npm install (non-deterministic)"
+            npm install --no-audit --no-fund
+          fi
 
       - name: Build
         working-directory: ${{ env.WORKING_DIRECTORY }}
         shell: bash
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.CWI_SECRET_GITHUB_TOKEN_DISTRIBUTOR }}
         run: |
           set -euo pipefail
-
-          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
-            echo "NOTE: NODE_AUTH_TOKEN not set (ok if no private packages)."
-            unset NODE_AUTH_TOKEN || true
-          fi
-
           rm -rf "${{ env.BUILD_OUTPUT_DIR }}"
           mkdir -p "${{ env.BUILD_OUTPUT_DIR }}"
-
           npm run build
-
-          # If build outputs to dist/, copy it:
           if [ -d dist ] && [ "${{ env.BUILD_OUTPUT_DIR }}" != "dist" ]; then
             cp -R dist/* "${{ env.BUILD_OUTPUT_DIR }}/" || true
           fi
-
           for f in additional_release_image_instructions.dockerfile deploy.env; do
-            if [ -f "$f" ]; then
-              cp "$f" "${{ env.BUILD_OUTPUT_DIR }}/"
-            fi
+            [ -f "$f" ] && cp "$f" "${{ env.BUILD_OUTPUT_DIR }}/"
           done
-
-          echo "Pruning dev dependencies..."
+          echo "Pruning dev dependencies (best effort)..."
           if npm prune --omit=dev 2>/dev/null; then
             echo "Used: npm prune --omit=dev"
           else
-            npm prune --production
-            echo "Fallback: npm prune --production"
+            npm prune --production || true
           fi
 
       - name: Validate build output
