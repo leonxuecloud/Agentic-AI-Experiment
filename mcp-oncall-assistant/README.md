@@ -344,9 +344,9 @@ If you prefer not to use `uv` or need more control:
    ```
 
    **Note for Windows users**: Use backslashes in paths:
-   - UV: `C:\\path\\to\\uv.exe`
-   - Python: `C:\\path\\to\\mcp-oncall-assistant\\.venv\\Scripts\\python.exe`
-   - Server: `C:\\path\\to\\mcp-oncall-assistant\\src\\server.py`
+   - UV: `path\\to\\uv.exe`
+   - Python: `path\\to\\mcp-oncall-assistant\\.venv\\Scripts\\python.exe`
+   - Server: `path\\to\\mcp-oncall-assistant\\src\\server.py`
 
 3. **Restart Claude Desktop** completely (quit and reopen)
 
