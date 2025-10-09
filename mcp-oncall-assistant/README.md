@@ -40,20 +40,55 @@ An MCP (Model Context Protocol) server built with Python that provides AI-enhanc
 
 ```
 mcp-oncall-assistant/
-├── scripts/              # 🔧 Automation & Launch Scripts
-│   ├── start-mcp.bat        # Windows batch launcher
-│   ├── start-mcp.ps1        # PowerShell launcher  
-│   ├── setup-environment.ps1  # Full environment setup
-│   └── fix-venv.bat         # Virtual environment repair
-├── src/                  # 🐍 Python Source Code
-│   ├── server.py            # Main MCP server
-│   ├── test-environment.py  # Environment validation
-│   └── main.py              # Additional entry point
-├── .vscode/              # 🛠️ VS Code Configuration
-├── .env                  # 🔐 Environment variables
-├── requirements.txt      # 📦 Dependencies
-└── pyproject.toml        # 🏗️ Project config
+├── scripts/                  # 🔧 Automation & Launch Scripts
+│   ├── start-mcp.bat            # Windows batch launcher
+│   ├── start-mcp.ps1            # PowerShell launcher  
+│   ├── setup-environment.ps1    # Full environment setup
+│   └── fix-venv.bat             # Virtual environment repair
+├── src/                      # 🐍 Python Source Code
+│   ├── server.py                # Main MCP server
+│   ├── main.py                  # Alternative entry point
+│   ├── test-environment.py      # Environment validation
+│   └── tools/                   # Tool modules
+│       ├── wpfile/              # CaseWare file analysis
+│       │   ├── caseware_universal_extractor.py
+│       │   ├── caseware_stream_extractor.py
+│       │   ├── valide_forensic_analyzer.py
+│       │   ├── enhanced_valide_extractor.py
+│       │   └── deep_valide_analyzer.py
+│       └── wplog/               # WPLog analysis
+│           ├── wplog_analyzer.py
+│           └── main.py
+├── .vscode/                  # 🛠️ VS Code Configuration
+│   ├── settings.json
+│   └── launch.json
+├── .env.example              # 📋 Sample environment config
+├── .env                      # 🔐 Environment variables (create from .env.example)
+├── .gitignore               # 🚫 Git ignore rules
+├── requirements.txt         # 📦 Python dependencies
+├── pyproject.toml           # 🏗️ Project config & metadata
+├── uv.lock                  # 🔒 UV dependency lock file
+├── README.md                # 📖 This file
+├── QUICKSTART.md            # 🚀 Quick start guide
+├── CODE_CLEANUP_SUMMARY.md  # 📝 Cleanup documentation
+├── HARD_CODED_PATH_REMOVAL.md  # 📝 Path removal audit
+├── HARDCODED_PATHS_AUDIT.md    # 📝 Detailed audit report
+├── final_wplog_validation.py   # ✅ WPLog validation script
+├── test_caseware_fix.py        # 🧪 CaseWare tests
+├── test_server.py              # 🧪 Server tests
+├── test_wplog_bottlenecks.py   # 🧪 WPLog bottleneck tests
+└── wplog_analysis_report.py    # 📊 Analysis report generator
 ```
+
+### Key Directories
+
+- **`scripts/`** - Automation scripts for setup and running the server
+- **`src/`** - Main source code directory
+  - **`server.py`** - FastMCP server implementation with all tools
+  - **`tools/wpfile/`** - CaseWare file analysis and extraction tools
+  - **`tools/wplog/`** - Working Papers log analysis tools
+- **`.vscode/`** - VS Code configuration for debugging and development
+- **Test files** - Various test scripts for validation and QA
 
 ## Development Setup
 
