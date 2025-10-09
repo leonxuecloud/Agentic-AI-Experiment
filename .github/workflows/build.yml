@@ -1,0 +1,59 @@
+name: Build & Publish
+
+on:
+  push:
+    branches:
+      - develop
+      - staging
+      - master
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      workingDirectory: "" # This can be configured. Default root directory of repo.
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '12.x'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: 'caseware'
+
+      - name: Cache node modules
+        uses: actions/cache@v1
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: ~/.npm # npm cache files are stored in `~/.npm` on Linux/macOS
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('${{ env.workingDirectory }}/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+      # Perform the build. The build should output files to workingDirectory/build directory.
+      - name: Build
+        working-directory: ${{ env.workingDirectory }}
+        run: |
+          # Create the build directory. Copy some of the necessary files over.
+          mkdir -p build
+          cp additional_release_image_instructions.dockerfile build/
+          cp deploy.env build/
+
+          # Install node packages and perform build. The build script should copy over all the 
+          # necessary files needed to run the application.
+          npm install
+          npm run build
+          npm prune --production
+
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.CWI_SECRET_GITHUB_TOKEN_DISTRIBUTOR }}
+
+      # Takes the files in workingDirectory/build directory and uploads them as artifacts.
+      - name: Upload build results
+        uses: actions/upload-artifact@v2
+        with:
+          name: build
+          path: ${{ github.workspace }}/${{ env.workingDirectory }}/build
