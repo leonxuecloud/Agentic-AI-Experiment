@@ -1,0 +1,8 @@
+# Core MCP and server dependencies
+mcp>=1.16.0
+fastmcp>=2.2.3
+httpx>=0.24.0
+python-dotenv>=1.0.0
+
+# JIRA integration (locked to 3.8.x series)
+jira~=3.8.0

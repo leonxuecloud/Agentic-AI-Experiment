@@ -1,0 +1,45 @@
+[project]
+name = "mcp-oncall-assistant"
+version = "0.1.0"
+description = "MCP-based on-call assistant with WP log analysis and Jira integration."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+authors = [
+  { name = "Leon Xue", email = "leon.xue@caseware.com" }
+]
+keywords = ["mcp", "oncall", "jira", "log-analysis", "automation"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Intended Audience :: Developers",
+  "License :: Other/Proprietary License",
+  "Topic :: Software Development :: Libraries",
+  "Topic :: System :: Monitoring"
+]
+
+# Core runtime dependencies
+dependencies = [
+  "mcp[cli]~=1.16.0",
+  "fastmcp~=2.2.3",
+  "httpx~=0.24.0",
+  "python-dotenv~=1.0.0",
+]
+
+# Optional extras
+dev = [
+  "pytest~=8.1.0",
+  "pytest-cov~=5.0.0",
+  "mypy~=1.10.0",
+  "ruff~=0.6.0",
+  "black~=24.8.0",
+  "types-requests~=2.31.0.20240907",
+]
+
+[project.urls]
+Repository = "https://github.com/leonxuecloud/Agentic-AI-Experiment"
+Issues = "https://github.com/leonxuecloud/Agentic-AI-Experiment/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["*"]

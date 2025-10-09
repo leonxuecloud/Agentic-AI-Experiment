@@ -1,0 +1,61 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug MCP Server",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/server.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                "JIRA_BASE_URL": "${env:JIRA_BASE_URL}",
+                "JIRA_EMAIL": "${env:JIRA_EMAIL}",
+                "JIRA_TOKEN": "${env:JIRA_TOKEN}",
+                "REQUIRE_HUMAN_APPROVAL": "true",
+                "MAX_FILE_SIZE_GB": "20",
+                "ALLOWED_EXTENSIONS": ".ac,.ac_,.log,.txt,.md",
+                "TOOLS_DIR": "./tools"
+            },
+            "envFile": "${workspaceFolder}/.env",
+            "args": [],
+            "stopOnEntry": false,
+            "justMyCode": false,
+            "subProcess": true
+        },
+        {
+            "name": "Debug MCP Server (MCP Dev Mode)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "mcp",
+            "args": ["dev", "${workspaceFolder}/src/server.py"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "envFile": "${workspaceFolder}/.env",
+            "stopOnEntry": false,
+            "justMyCode": false,
+            "subProcess": true
+        },
+        {
+            "name": "Test Environment",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/test-environment.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "envFile": "${workspaceFolder}/.env",
+            "stopOnEntry": false,
+            "justMyCode": false
+        }
+    ]
+}
