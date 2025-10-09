@@ -63,7 +63,7 @@ This project uses `uv` for dependency management and virtual environment handlin
 
 1. **Navigate to the project directory:**
    ```bash
-   cd "Caseware Hackathon/2025/mcp-oncall-assistant"
+   cd mcp-oncall-assistant
    ```
 
 2. **Set up the uv environment:**
@@ -97,7 +97,7 @@ This project uses `uv` for dependency management and virtual environment handlin
    1. Open the Command Palette: `Shift + Ctrl/Cmd + P`
    2. Select "Python: Select Interpreter"
    3. Choose the `.venv` environment from your project directory
-   4. Verify the Python path shows: `./Caseware Hackathon/2025/mcp-oncall-assistant/.venv/Scripts/python.exe` (Windows) or `./Caseware Hackathon/2025/mcp-oncall-assistant/.venv/bin/python` (macOS/Linux)
+   4. Verify the Python path shows: `./mcp-oncall-assistant/.venv/Scripts/python.exe` (Windows) or `./mcp-oncall-assistant/.venv/bin/python` (macOS/Linux)
 
 ### Method 2: Manual Setup (Alternative)
 
@@ -105,7 +105,7 @@ If you prefer not to use `uv` or need more control:
 
 1. **Navigate to the project directory:**
    ```bash
-   cd "Caseware Hackathon/2025/mcp-oncall-assistant"
+   cd mcp-oncall-assistant
    ```
 
 2. **Create virtual environment:**
@@ -234,18 +234,18 @@ If you prefer not to use `uv` or need more control:
    which uv
    ```
 
-2. **Get absolute path to your server:**
+2. **Get absolute path to your project:**
 
-   **Windows:**
+   **Windows (PowerShell):**
    ```powershell
-   Get-ChildItem "Caseware Hackathon/2025/mcp-oncall-assistant/server.py" | Select-Object FullName
+   (Get-Item .).FullName
+   # Example output: C:\path\to\mcp-oncall-assistant
    ```
 
    **macOS/Linux:**
    ```bash
    pwd
-   # Shows: /path/to/your/My-playgroud
-   # Full server path: /path/to/your/My-playgroud/Caseware Hackathon/2025/mcp-oncall-assistant/src/server.py
+   # Example output: /path/to/mcp-oncall-assistant
    ```
 
 ### Step 2: Configure Claude Desktop
@@ -274,7 +274,7 @@ If you prefer not to use `uv` or need more control:
          "args": [
            "run",
            "--directory",
-           "/path/to/your/My-playgroud/Caseware Hackathon/2025/mcp-oncall-assistant",
+           "/path/to/mcp-oncall-assistant",
            "mcp",
            "run",
            "src/server.py"
@@ -294,9 +294,9 @@ If you prefer not to use `uv` or need more control:
    {
      "mcpServers": {
        "incident-response": {
-         "command": "/path/to/your/My-playgroud/Caseware Hackathon/2025/mcp-oncall-assistant/.venv/bin/python",
+         "command": "/path/to/mcp-oncall-assistant/.venv/bin/python",
          "args": [
-           "/path/to/your/My-playgroud/Caseware Hackathon/2025/mcp-oncall-assistant/src/server.py"
+           "/path/to/mcp-oncall-assistant/src/server.py"
          ],
          "env": {
            "JIRA_BASE_URL": "https://yourcompany.atlassian.net",
@@ -310,8 +310,8 @@ If you prefer not to use `uv` or need more control:
 
    **Note for Windows users**: Use backslashes in paths:
    - UV: `C:\\path\\to\\uv.exe`
-   - Python: `C:\\path\\to\\your\\My-playgroud\\Caseware Hackathon\\2025\\mcp-oncall-assistant\\.venv\\Scripts\\python.exe`
-   - Server: `C:\\path\\to\\your\\My-playgroud\\Caseware Hackathon\\2025\\mcp-oncall-assistant\\src\\server.py`
+   - Python: `C:\\path\\to\\mcp-oncall-assistant\\.venv\\Scripts\\python.exe`
+   - Server: `C:\\path\\to\\mcp-oncall-assistant\\src\\server.py`
 
 3. **Restart Claude Desktop** completely (quit and reopen)
 

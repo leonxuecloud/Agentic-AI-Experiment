@@ -3,7 +3,7 @@
 Welcome to the Agentic AI Experiment repository!  
 This space is dedicated to exploring the capabilities of Agentic AI—systems that exhibit autonomy, adaptability, and intelligent decision-making in complex environments.
 
-The first project in this repository is the **MCP On-Call Assistant**, originally developed for the Caseware Hackathon 2025.
+The first project in this repository is the **MCP On-Call Assistant**.
 
 ---
 

@@ -558,7 +558,9 @@ def wplog_export_analysis(log_file_path: str, output_file: str, analysis_type: s
 @mcp.resource("file://status.txt")
 def get_status_file() -> str:
     """Get the system status file content"""
-    return "System Status: Operational\nLast Updated: 2025-10-08\nServices: All running normally"
+    from datetime import datetime
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    return f"System Status: Operational\nLast Updated: {current_date}\nServices: All running normally"
 
 @mcp.resource("file://greeting.txt")
 def get_greeting_file() -> str:
