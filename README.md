@@ -1,24 +1,79 @@
-# Setup new repository
-To use this template, select this repository as the template when creating a new repository.
+# Agentic AI Experiment
 
-After creating a new repository
-1. run `npm init` to initialise npm.
-2. Copy the scripts section of the [sample package.json](https://github.com/caseware/eks-distributor-template/blob/master/sample-package.json#L6-L9) 
-to the newly generated package.json
+Welcome to the Agentic AI Experiment repository!  
+This space is dedicated to exploring the capabilities of Agentic AI—systems that exhibit autonomy, adaptability, and intelligent decision-making in complex environments.
 
-# Modifications
-The default setup should work for most applications, but some teams may want extra features like
-minified files.
+The first project in this repository is the **MCP On-Call Assistant**, originally developed for the Caseware Hackathon 2025.
 
-Building and testing is fully customisable. 
+---
 
-For most applications, the only step that needs to be modified is the `build` script in
-[package.json](./sample-package.json). It can perform extra actions and copy different files
-to the build directory.
+## About MCP On-Call Assistant
 
-Although it shouldn't be necessary, the [build.yml](.github/workflows/build.yml) file can be
-modified if needed. The only requirement is that the workflow must upload artifact containing
-`additional_release_image_instructions.dockerfile` and `deploy.env` files.
+The MCP On-Call Assistant leverages Python and modern AI techniques to help automate incident response, repair workflow files, and provide intelligent knowledge base search. It’s designed to be modular, extensible, and easy to set up for experimentation and prototyping.
 
+### Key Features
 
+- 🤖 **AI-Powered Incident Response:** Smart recommendations for resolving incidents.
+- 🎫 **JIRA Integration:** Seamless ticket management and tracking.
+- 🔧 **CaseWare File Repair:** Automated detection and repair of corrupted CaseWare Working Papers archives.
+- 🔍 **Knowledge Base Search:** AI-assisted search across documentation and resources.
+- 📊 **WPLog Diagnostic Analysis:** Analyze CaseWare Working Papers log files with AI.
 
+---
+
+## Repository Structure
+
+This repository may grow to include multiple Agentic AI experiments. Currently, it houses:
+
+- `mcp-oncall-assistant/` — Source code and docs for the MCP On-Call Assistant
+
+---
+
+## Getting Started
+
+### Requirements
+
+- Python 3.8+
+- [uv](https://docs.astral.sh/uv/) (for dependency management, recommended)
+- Visual Studio Code or another code editor
+- (Optional) Git for version control
+
+### Setup
+
+1. **Clone this repository**
+   ```bash
+   git clone https://github.com/leonxuecloud/Agentic-AI-Experiment.git
+   cd Agentic-AI-Experiment
+   ```
+
+2. **Install dependencies**
+   Using [uv]:
+   ```bash
+   uv sync
+   ```
+   Or, using pip and venv:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .\.venv\Scripts\Activate.ps1
+   pip install -r requirements.txt
+   ```
+
+3. **Configure environment variables**
+   Copy `.env.example` to `.env` and fill in the required configuration.
+   ```bash
+   cp .env.example .env
+   ```
+
+---
+
+## Contributing
+
+This repository welcomes experimentation and collaboration. Please feel free to ask for or open issues to talk about.
+
+## License
+
+MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+*Agentic AI Experiment — Pioneering autonomy, intelligence, and adaptability in software agents.*
