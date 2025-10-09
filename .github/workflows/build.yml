@@ -7,53 +7,87 @@ on:
       - staging
       - master
 
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  check:
+  build:
+    name: Build
     runs-on: ubuntu-latest
     env:
-      workingDirectory: "" # This can be configured. Default root directory of repo.
+      # Set to '.' for repo root. Change to a subdirectory (e.g. 'app') if your project resides elsewhere.
+      WORKING_DIRECTORY: .
+      # If you still need to publish or install from GitHub Packages with a scope, keep these.
+      NPM_REGISTRY_URL: https://npm.pkg.github.com
+      NPM_SCOPE: caseware
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
-        with:
-          node-version: '12.x'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: 'caseware'
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Cache node modules
-        uses: actions/cache@v4
-        env:
-          cache-name: cache-node-modules
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          path: ~/.npm # npm cache files are stored in `~/.npm` on Linux/macOS
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('${{ env.workingDirectory }}/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
+            node-version: 20
+            # Use built-in dependency caching keyed off lockfile.
+            cache: npm
+            cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/package-lock.json
+            # If you need private GitHub Packages, uncomment the two lines below:
+            # registry-url: ${{ env.NPM_REGISTRY_URL }}
+            # scope: ${{ env.NPM_SCOPE }}
 
-      # Perform the build. The build should output files to workingDirectory/build directory.
-      - name: Build
-        working-directory: ${{ env.workingDirectory }}
+      # If you prefer manual cache instead of setup-node cache, uncomment this block and remove cache: npm above.
+      # - name: Cache npm directory
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: ~/.npm
+      #     key: ${{ runner.os }}-npm-${{ hashFiles(format('{0}/package-lock.json', env.WORKING_DIRECTORY)) }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-npm-
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}
         run: |
-          # Create the build directory. Copy some of the necessary files over.
-          mkdir -p build
-          cp additional_release_image_instructions.dockerfile build/
-          cp deploy.env build/
+          set -euo pipefail
+          npm ci
 
-          # Install node packages and perform build. The build script should copy over all the 
-          # necessary files needed to run the application.
-          npm install
-          npm run build
-          npm prune --production
-
+      - name: Build
+        working-directory: ${{ env.WORKING_DIRECTORY }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.CWI_SECRET_GITHUB_TOKEN_DISTRIBUTOR }}
+        run: |
+          set -euo pipefail
+          # Ensure clean build directory
+            rm -rf build
+            mkdir -p build
 
-      # Takes the files in workingDirectory/build directory and uploads them as artifacts.
-      - name: Upload build results
-        uses: actions/upload-artifact@v2
+            # Run your build (adjust script name if different)
+            npm run build
+
+            # Copy auxiliary files only if they exist to avoid failing when absent.
+            for f in additional_release_image_instructions.dockerfile deploy.env; do
+              if [ -f "$f" ]; then
+                cp "$f" build/
+              fi
+            done
+
+            # Prune dev dependencies for a production-ready artifact
+            npm prune --production
+
+      - name: Show build output (debug)
+        if: ${{ success() }}
+        run: |
+          echo "Build directory contents:"
+          find ${{ env.WORKING_DIRECTORY }}/build -maxdepth 2 -type f | sed 's|^|  - |'
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: build
-          path: ${{ github.workspace }}/${{ env.workingDirectory }}/build
+          name: build-${{ github.sha }}
+          path: ${{ env.WORKING_DIRECTORY }}/build
+          if-no-files-found: error
+          retention-days: 7
