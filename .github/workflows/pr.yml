@@ -1,81 +1,152 @@
-name: Pull Request Validation
+name: Build & Publish
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-    # Add (or remove) ignores to avoid wasting CI minutes on non-code changes
-    # paths-ignore:
-    #   - 'docs/**'
-    #   - '*.md'
-
-concurrency:
-  group: pr-${{ github.event.pull_request.head.ref }}
-  cancel-in-progress: true
+  push:
+    branches:
+      - develop
+      - staging
+      - master
 
 permissions:
   contents: read
+  packages: read
+
+concurrency:
+  group: build-${{ github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  WORKING_DIRECTORY: .
+  BUILD_OUTPUT_DIR: build
+  NPM_REGISTRY_URL: https://npm.pkg.github.com
+  NPM_SCOPE: caseware
 
 jobs:
   build:
-    # Skip running on draft PRs until they are marked ready
-    if: ${{ github.event.pull_request.draft == false }}
+    name: Build
     runs-on: ubuntu-latest
-
-    env:
-      # Set once at the job level instead of per-step
-      NODE_AUTH_TOKEN: ${{ secrets.CWI_SECRET_GITHUB_TOKEN_DISTRIBUTOR }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # Only use fetch-depth: 0 if you really need full history (e.g. for the modified dates step)
           fetch-depth: 0
 
-      - name: Set up Node
+      - name: Detect lockfiles (diagnostic)
+        shell: bash
+        run: |
+          echo "Listing lockfiles at repo root and below:"
+          find . -maxdepth 3 -type f \( -name 'package-lock.json' -o -name 'pnpm-lock.yaml' -o -name 'yarn.lock' \) -print || true
+
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-            # Prefer current LTS unless project requires 12.x (which is EOL)
-            node-version: '20.x'
-            # If you have a .nvmrc you can replace the above with: node-version-file: '.nvmrc'
-            registry-url: 'https://npm.pkg.github.com'
-            scope: 'caseware'
-            cache: 'yarn'
+          node-version: 20
+          cache: npm
+          # NOTE:
+          # The next line (cache-dependency-path) was removed because it caused:
+          #   'Error: Some specified paths were not resolved, unable to cache dependencies.'
+          # Only reintroduce it if you are SURE the path exists.
+          #
+          # If your lockfile is actually in a subdirectory (e.g. app/package-lock.json), uncomment and adjust:
+          # cache-dependency-path: app/package-lock.json
+          #
+          # If you use pnpm instead of npm:
+          # cache: pnpm
+          # And ensure pnpm-lock.yaml exists.
+          #
+          # If you use yarn classic:
+          # cache: yarn
 
-      # OPTIONAL: only keep if some downstream tooling relies on file mtimes.
-      # Otherwise remove for a faster pipeline.
-      - name: Normalize file modified dates (optional)
-        if: ${{ always() && env.RESTORE_MOD_DATES == 'true' }}
+      - name: Verify lockfile (optional strict check)
+        shell: bash
         run: |
-          git ls-tree -r --name-only HEAD | while read -r filename; do
-            unixtime=$(git log -1 --format="%at" -- "${filename}")
-            touchtime=$(date -d @"$unixtime" +'%Y%m%d%H%M.%S')
-            touch -t "${touchtime}" "${filename}"
-          done
+          set -euo pipefail
+          # Adjust this if your project lives in a subdirectory.
+            if [ ! -f "${{ env.WORKING_DIRECTORY }}/package-lock.json" ]; then
+              echo "WARNING: package-lock.json not found at ${{ env.WORKING_DIRECTORY }}."
+              echo "If you use a different lockfile (pnpm-lock.yaml or yarn.lock) adjust the workflow accordingly."
+              # Uncomment next line to fail hard instead of warn:
+              # exit 1
+            fi
 
-      - name: Write private key
-        # Using printf avoids adding a trailing newline that echo might
+      - name: Show tool versions
+        shell: bash
         run: |
-          printf '%s' "${{ secrets.REPORT_PRIVATE_KEY }}" > private.pem
-          chmod 600 private.pem
+          node -v
+          npm -v
 
       - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        shell: bash
         run: |
-          yarn install --frozen-lockfile
-        # If you truly only need production deps, use: yarn install --frozen-lockfile --production
-        # but most test/evaluate steps need dev deps.
+          set -euo pipefail
+          # If using pnpm or yarn, replace this command.
+          npm ci --no-audit --no-fund || npm install
 
-      - name: Evaluate report.enc
-        run: npx @caseware/provider-bindings-tests evaluate
-
-      # Example: run tests / lint (add as needed)
-      # - name: Lint
-      #   run: yarn lint
-      #
-      # - name: Test
-      #   run: yarn test --ci --reporters=default --reporters=jest-junit
-
-      - name: Summary
-        if: always()
+      - name: Build
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.CWI_SECRET_GITHUB_TOKEN_DISTRIBUTOR }}
         run: |
-          echo "Workflow completed with conclusion: ${{ job.status }}"
+          set -euo pipefail
+
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "NOTE: NODE_AUTH_TOKEN not set (ok if no private packages)."
+            unset NODE_AUTH_TOKEN || true
+          fi
+
+          rm -rf "${{ env.BUILD_OUTPUT_DIR }}"
+          mkdir -p "${{ env.BUILD_OUTPUT_DIR }}"
+
+          npm run build
+
+          # If build outputs to dist/, copy it:
+          if [ -d dist ] && [ "${{ env.BUILD_OUTPUT_DIR }}" != "dist" ]; then
+            cp -R dist/* "${{ env.BUILD_OUTPUT_DIR }}/" || true
+          fi
+
+          for f in additional_release_image_instructions.dockerfile deploy.env; do
+            if [ -f "$f" ]; then
+              cp "$f" "${{ env.BUILD_OUTPUT_DIR }}/"
+            fi
+          done
+
+          echo "Pruning dev dependencies..."
+          if npm prune --omit=dev 2>/dev/null; then
+            echo "Used: npm prune --omit=dev"
+          else
+            npm prune --production
+            echo "Fallback: npm prune --production"
+          fi
+
+      - name: Validate build output
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -d "${{ env.WORKING_DIRECTORY }}/${{ env.BUILD_OUTPUT_DIR }}" ]; then
+            echo "Build output directory missing."
+            exit 1
+          fi
+          COUNT=$(find "${{ env.WORKING_DIRECTORY }}/${{ env.BUILD_OUTPUT_DIR }}" -type f | wc -l | tr -d ' ')
+          if [ "$COUNT" -eq 0 ]; then
+            echo "No files produced in build output directory."
+            exit 1
+          fi
+          echo "Build produced $COUNT files."
+
+      - name: Show build output (debug)
+        if: ${{ success() }}
+        shell: bash
+        run: |
+          echo "Build directory contents:"
+          find "${{ env.WORKING_DIRECTORY }}/${{ env.BUILD_OUTPUT_DIR }}" -maxdepth 2 -type f | sed 's|^|  - |'
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ github.sha }}
+          path: ${{ env.WORKING_DIRECTORY }}/${{ env.BUILD_OUTPUT_DIR }}
+          if-no-files-found: error
+          retention-days: 7
