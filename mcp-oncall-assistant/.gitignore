@@ -182,3 +182,21 @@ npm-debug.log
 /WPLog Analyser/custom_reports
 /WPLog Analyser/final_analysis
 /WPLog Analyser/reports
+
+# Test data files (may contain sensitive client information)
+test_data/*.txt
+test_data/*.ac_
+test_data/*.ac2
+test_data/*.log
+# Keep the README
+!test_data/README.md
+
+# Documentation files (temporary/internal only)
+CODE_CLEANUP_SUMMARY.md
+docs/HARDCODED_PATH_REMOVAL.md
+docs/MCP_INSPECTOR_WORKAROUND.md
+docs/FIXING_VENV_ACCESS_DENIED.md
+docs/TEST_ORGANIZATION_COMPLETE.md
+
+# Utility scripts (development/troubleshooting only)
+scripts/cleanup-venv-locks.ps1

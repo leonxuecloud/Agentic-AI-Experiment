@@ -3,10 +3,16 @@
 WPLog Bottleneck Analysis Report
 ================================
 
-Analysis of the wplog_find_bottlenecks function with test files.
+Analysis of the wplog_find_bottlenecks function.
 
 This report summarizes the functionality and provides recommendations
 for optimal bottleneck detection.
+
+Usage:
+    python wplog_analysis_report.py [path_to_wplog_file]
+    
+    If no path is provided, uses WPLOG_TEST_FILE environment variable
+    or generates a generic report without file-specific analysis.
 """
 
 def generate_analysis_report():
@@ -111,4 +117,4 @@ def generate_analysis_report():
     return True
 
 if __name__ == "__main__":
-    generate_analysis_report()    generate_analysis_report()
+    generate_analysis_report()

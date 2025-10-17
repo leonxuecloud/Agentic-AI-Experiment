@@ -1,0 +1,17 @@
+{
+  "configurations": [
+    {
+      "env": {
+        "PYTHONPATH": ""
+      },
+      "program": "/src/server.py",
+      "request": "launch",
+      "console": "integratedTerminal",
+      "cwd": "",
+      "type": "python",
+      "name": "Debug MCP Server",
+      "envFile": "/.env"
+    }
+  ],
+  "version": "0.2.0"
+}

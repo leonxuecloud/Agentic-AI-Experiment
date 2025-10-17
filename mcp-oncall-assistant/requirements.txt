@@ -1,8 +1,18 @@
 # Core MCP and server dependencies
-mcp>=1.16.0
+# Use mcp[cli] extra to ensure typer (CLI) dependency installed (fixes 'typer is required' error)
+mcp[cli]>=1.16.0
 fastmcp>=2.2.3
+
+# HTTP client and request handling
 httpx>=0.24.0
+
+# Environment and configuration
 python-dotenv>=1.0.0
 
-# JIRA integration (locked to 3.8.x series)
-jira~=3.8.0
+# JIRA integration
+jira>=3.8.0
+
+# Additional optional dependencies (uncomment if needed):
+# requests>=2.31.0
+# pydantic>=2.0.0
+# anyio>=4.0.0

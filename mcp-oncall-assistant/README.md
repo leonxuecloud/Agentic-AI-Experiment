@@ -38,57 +38,90 @@ An MCP (Model Context Protocol) server built with Python that provides AI-enhanc
 
 ## Project Structure
 
-```
+```text
 mcp-oncall-assistant/
-├── scripts/                  # 🔧 Automation & Launch Scripts
-│   ├── start-mcp.bat            # Windows batch launcher
-│   ├── start-mcp.ps1            # PowerShell launcher  
-│   ├── setup-environment.ps1    # Full environment setup
-│   └── fix-venv.bat             # Virtual environment repair
-├── src/                      # 🐍 Python Source Code
-│   ├── server.py                # Main MCP server
-│   ├── main.py                  # Alternative entry point
-│   ├── test-environment.py      # Environment validation
-│   └── tools/                   # Tool modules
-│       ├── wpfile/              # CaseWare file analysis
+├── scripts/                   # 🔧 Automation & Launch Scripts
+│   ├── start-mcp.bat          # Windows batch launcher
+│   ├── start-mcp.ps1          # PowerShell launcher  
+│   ├── setup-environment.ps1  # Full environment setup (venv, deps, VS Code)
+│   └── fix-venv.bat           # Virtual environment repair helper
+├── src/                       # 🐍 Python Source Code
+│   ├── server.py              # Main MCP server (tools/resources/prompts)
+│   ├── main.py                # Alternate entry point
+│   └── tools/                 # Domain-specific tool modules
+│       ├── wpfile/            # CaseWare file analysis/extraction
 │       │   ├── caseware_universal_extractor.py
 │       │   ├── caseware_stream_extractor.py
 │       │   ├── valide_forensic_analyzer.py
 │       │   ├── enhanced_valide_extractor.py
 │       │   └── deep_valide_analyzer.py
-│       └── wplog/               # WPLog analysis
+│       └── wplog/             # Working Papers log analysis
 │           ├── wplog_analyzer.py
 │           └── main.py
-├── .vscode/                  # 🛠️ VS Code Configuration
-│   ├── settings.json
-│   └── launch.json
-├── .env.example              # 📋 Sample environment config
-├── .env                      # 🔐 Environment variables (create from .env.example)
-├── .gitignore               # 🚫 Git ignore rules
-├── requirements.txt         # 📦 Python dependencies
-├── pyproject.toml           # 🏗️ Project config & metadata
-├── uv.lock                  # 🔒 UV dependency lock file
-├── README.md                # 📖 This file
-├── QUICKSTART.md            # 🚀 Quick start guide
-├── CODE_CLEANUP_SUMMARY.md  # 📝 Cleanup documentation
-├── HARD_CODED_PATH_REMOVAL.md  # 📝 Path removal audit
-├── HARDCODED_PATHS_AUDIT.md    # 📝 Detailed audit report
-├── final_wplog_validation.py   # ✅ WPLog validation script
-├── test_caseware_fix.py        # 🧪 CaseWare tests
-├── test_server.py              # 🧪 Server tests
-├── test_wplog_bottlenecks.py   # 🧪 WPLog bottleneck tests
-└── wplog_analysis_report.py    # 📊 Analysis report generator
+├── tests/                     # 🧪 Test Scripts & Validation Suite
+│   ├── run_all_tests.py       # Comprehensive test runner (default/basic)
+│   ├── test-environment.py    # Full environment validation (opt-in)
+│   ├── test_caseware_fix.py   # CaseWare extractor tests
+│   ├── test_server.py         # Server import/tools sanity tests
+│   ├── test_wplog_bottlenecks.py # WPLog bottleneck detection tests
+│   ├── test_path_config.py    # Path resolution tests
+│   ├── final_wplog_validation.py # Extended WPLog validation
+│   ├── wplog_analysis_report.py  # Report generation harness
+│   └── README.md              # Test suite usage notes
+├── test_data/                 # Sample test artifacts (gitignored except README)
+├── docs/                      # 📚 Project & design documentation
+│   ├── DESIGN_DOCUMENT.md
+│   ├── TECHNICAL_ARCHITECTURE.md
+│   ├── SETUP_GUIDE.md
+│   └── ... (other guides/reports)
+├── .vscode/                   # 🛠️ VS Code settings & launch configs
+├── .env.example               # 📋 Sample environment config
+├── .env                       # 🔐 Actual environment variables (local only)
+├── .gitignore                 # 🚫 Ignore rules
+├── requirements.txt           # 📦 Python dependencies (pip compatible)
+├── pyproject.toml             # 🏗️ Project config & metadata
+├── uv.lock                    # 🔒 UV dependency lock file
+├── README.md                  # 📖 Main documentation (this file)
+├── QUICKSTART.md              # 🚀 Fast start guide
+└── mcp-oncall-assistant.code-workspace # VS Code workspace file
 ```
 
-### Key Directories
+## Running Tests
 
-- **`scripts/`** - Automation scripts for setup and running the server
-- **`src/`** - Main source code directory
-  - **`server.py`** - FastMCP server implementation with all tools
-  - **`tools/wpfile/`** - CaseWare file analysis and extraction tools
-  - **`tools/wplog/`** - Working Papers log analysis tools
-- **`.vscode/`** - VS Code configuration for debugging and development
-- **Test files** - Various test scripts for validation and QA
+### Default Test Suite
+
+To run the default test suite (basic functional and integration tests):
+
+```bash
+python tests/run_all_tests.py
+```
+
+This executes core tests (environment setup, imports, path config, CaseWare/temp, WPLog bottlenecks) and skips the full environment script.
+
+### Full Environment Test Suite
+
+Include the full environment validation (checks .env, JIRA config, MCP server creation, file structure, etc):
+
+```bash
+# Option 1: Command line flag
+python tests/run_all_tests.py --full-env
+
+# Option 2: Environment variable (choose one)
+set RUN_FULL_ENV_TEST=1          # Windows PowerShell/CMD
+export RUN_FULL_ENV_TEST=1       # macOS/Linux
+python tests/run_all_tests.py
+```
+
+This will also run `tests/test-environment.py` as a subprocess and report its status.
+
+### Individual Test Scripts
+
+Run any specific test directly:
+
+```bash
+python tests/test-environment.py
+python tests/test_caseware_fix.py
+```
 
 ## Development Setup
 
@@ -98,7 +131,7 @@ This project uses `uv` for dependency management and virtual environment handlin
 
 1. **Navigate to the project directory:**
    ```bash
-   cd mcp-oncall-assistant
+   cd "mcp-oncall-assistant"
    ```
 
 2. **Set up the uv environment:**
@@ -140,7 +173,7 @@ If you prefer not to use `uv` or need more control:
 
 1. **Navigate to the project directory:**
    ```bash
-   cd mcp-oncall-assistant
+   cd "mcp-oncall-assistant"
    ```
 
 2. **Create virtual environment:**
@@ -205,13 +238,15 @@ If you prefer not to use `uv` or need more control:
 
 1. **Test environment and run server:**
    ```bash
-   # Test everything first
+   # Run default test suite
+   python tests/run_all_tests.py
+
+   # Run full environment test suite
+   python tests/run_all_tests.py --full-env
+
+   # Or use provided scripts for server launch
    scripts\start-mcp.bat test
-   
-   # Start development server with MCP Inspector
    scripts\start-mcp.bat dev
-   
-   # Or use PowerShell
    scripts\start-mcp.ps1 test
    scripts\start-mcp.ps1 dev
    ```
@@ -269,18 +304,18 @@ If you prefer not to use `uv` or need more control:
    which uv
    ```
 
-2. **Get absolute path to your project:**
+2. **Get absolute path to your server:**
 
-   **Windows (PowerShell):**
+   **Windows:**
    ```powershell
-   (Get-Item .).FullName
-   # Example output: C:\path\to\mcp-oncall-assistant
+   Get-ChildItem "mcp-oncall-assistant/server.py" | Select-Object FullName
    ```
 
    **macOS/Linux:**
    ```bash
    pwd
-   # Example output: /path/to/mcp-oncall-assistant
+   # Shows: /path/to/your/project
+   # Full server path: /path/to/your/project/mcp-oncall-assistant/src/server.py
    ```
 
 ### Step 2: Configure Claude Desktop
@@ -309,7 +344,7 @@ If you prefer not to use `uv` or need more control:
          "args": [
            "run",
            "--directory",
-           "/path/to/mcp-oncall-assistant",
+           "/path/to/your/project/mcp-oncall-assistant",
            "mcp",
            "run",
            "src/server.py"
@@ -329,9 +364,9 @@ If you prefer not to use `uv` or need more control:
    {
      "mcpServers": {
        "incident-response": {
-         "command": "/path/to/mcp-oncall-assistant/.venv/bin/python",
+         "command": "/path/to/your/project/mcp-oncall-assistant/.venv/bin/python",
          "args": [
-           "/path/to/mcp-oncall-assistant/src/server.py"
+           "/path/to/your/project/mcp-oncall-assistant/src/server.py"
          ],
          "env": {
            "JIRA_BASE_URL": "https://yourcompany.atlassian.net",
@@ -344,9 +379,9 @@ If you prefer not to use `uv` or need more control:
    ```
 
    **Note for Windows users**: Use backslashes in paths:
-   - UV: `path\\to\\uv.exe`
-   - Python: `path\\to\\mcp-oncall-assistant\\.venv\\Scripts\\python.exe`
-   - Server: `path\\to\\mcp-oncall-assistant\\src\\server.py`
+   - UV: `C:\\path\\to\\uv.exe`
+   - Python: `C:\\path\\to\\your\\project\\mcp-oncall-assistant\\.venv\\Scripts\\python.exe`
+   - Server: `C:\\path\\to\\your\\project\\mcp-oncall-assistant\\src\\server.py`
 
 3. **Restart Claude Desktop** completely (quit and reopen)
 
