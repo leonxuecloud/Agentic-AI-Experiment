@@ -7,8 +7,10 @@ import sys
 from pathlib import Path
 import tempfile
 
-# Add the src directory to the path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+# Add the project root and src directory to the path
+PROJECT_ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(PROJECT_ROOT / "src"))
+sys.path.insert(0, str(PROJECT_ROOT))
 
 def test_caseware_analyze_file():
     """Test the caseware_analyze_file function with a sample file"""

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Test wplog_find_bottlenecks function with a test file.
+Test wplog_find_bottlenecks function with the provided test file
 
 Usage:
-    python test_wplog_bottlenecks.py <path_to_wplog_file>
+    python tests/test_wplog_bottlenecks.py [path_to_wplog_file]
     
-Environment variable:
-    WPLOG_TEST_FILE - Path to the test wplog file
+    If no path is provided, uses WPLOG_TEST_FILE environment variable
+    or defaults to './test_data/wplog2014.txt'
 """
 
 import sys
@@ -14,24 +14,30 @@ import json
 import os
 from pathlib import Path
 
-# Add the src directory to the path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+# Add the project root and src directory to the path
+PROJECT_ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(PROJECT_ROOT / "src"))
+sys.path.insert(0, str(PROJECT_ROOT))
+
+def get_test_file_path():
+    """Get the test file path from arguments, environment, or default"""
+    # Priority: 1) Command line arg, 2) Environment variable, 3) Default
+    if len(sys.argv) > 1:
+        return sys.argv[1]
+    
+    env_path = os.getenv('WPLOG_TEST_FILE')
+    if env_path:
+        return env_path
+    
+    # Default to a test_data directory in the project
+    default_path = PROJECT_ROOT / "test_data" / "wplog2014.txt"
+    return str(default_path)
 
 def test_wplog_find_bottlenecks():
-    """Test the wplog_find_bottlenecks function with a test file"""
+    """Test the wplog_find_bottlenecks function with the specific test file"""
     from server import wplog_find_bottlenecks
     
-    # Get test file path from command line, environment variable, or use default pattern
-    if len(sys.argv) > 1:
-        test_file_path = sys.argv[1]
-    elif os.getenv('WPLOG_TEST_FILE'):
-        test_file_path = os.getenv('WPLOG_TEST_FILE')
-    else:
-        print("❌ No test file specified.")
-        print("Usage:")
-        print("  python test_wplog_bottlenecks.py <path_to_wplog_file>")
-        print("  OR set WPLOG_TEST_FILE environment variable")
-        return False
+    test_file_path = get_test_file_path()
     
     print(f"🧪 Testing wplog_find_bottlenecks with: {test_file_path}")
     print("=" * 60)
@@ -97,22 +103,16 @@ def test_wplog_find_bottlenecks():
     return result.get('success', False) and result2.get('success', False)
 
 def detailed_analysis():
-    """Perform detailed analysis of a test file"""
+    """Perform detailed analysis of the test file"""
     from tools.wplog.wplog_analyzer import WPLogAnalyzer
     
-    # Get test file path
-    if len(sys.argv) > 1:
-        test_file_path = sys.argv[1]
-    elif os.getenv('WPLOG_TEST_FILE'):
-        test_file_path = os.getenv('WPLOG_TEST_FILE')
-    else:
-        return
+    test_file_path = get_test_file_path()
     
     if not Path(test_file_path).exists():
         print(f"❌ Test file not found: {test_file_path}")
         return
     
-    print("\n🔬 Detailed Analysis")
+    print("\n🔬 Detailed Analysis of wplog2014.txt")
     print("=" * 60)
     
     analyzer = WPLogAnalyzer(verbose=True)

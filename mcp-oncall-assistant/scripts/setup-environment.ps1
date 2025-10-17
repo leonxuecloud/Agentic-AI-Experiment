@@ -26,7 +26,6 @@ param(
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectDir = $ScriptDir
 
-Write-Host "🔧 MCP Oncall Assistant Environment Setup" -ForegroundColor Green
 Write-Host "Project Directory: $ProjectDir" -ForegroundColor Yellow
 
 # Change to project directory
@@ -58,42 +57,18 @@ if (-not (Test-Path ".venv")) {
         exit 1
     }
     Write-Host "✅ Virtual environment created" -ForegroundColor Green
-} else {
-    Write-Host "✅ Virtual environment already exists" -ForegroundColor Green
-}
-
-# Activate virtual environment
-Write-Host "🔧 Activating virtual environment..." -ForegroundColor Cyan
-& ".\.venv\Scripts\Activate.ps1"
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "❌ Failed to activate virtual environment" -ForegroundColor Red
-    exit 1
-}
-
-# Upgrade pip
-Write-Host "📦 Upgrading pip..." -ForegroundColor Cyan
-& python -m pip install --upgrade pip
-
-# Install or upgrade requirements
-Write-Host "📦 Installing dependencies..." -ForegroundColor Cyan
-
-$RequiredPackages = @(
-    "mcp[cli]>=1.0.0",
-    "fastmcp>=2.2.3",
-    "jira>=3.8.0",
-    "python-dotenv>=1.0.0",
-    "httpx>=0.24.0"
-)
-
-foreach ($Package in $RequiredPackages) {
-    Write-Host "  Installing $Package..." -ForegroundColor Yellow
-    & pip install $Package
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "  ✅ $Package installed" -ForegroundColor Green
-    } else {
-        Write-Host "  ❌ Failed to install $Package" -ForegroundColor Red
-    }
+Write-Host "" 
+$pythonCheck = & python -c "import sys; print(sys.version.split()[0])"
+Write-Host "✅ Python: $pythonCheck"
+$jiraCheck = & python -c "import sys; import jira; print('✅ JIRA module')" 2>$null
+if ($jiraCheck) { Write-Host $jiraCheck }
+else { Write-Host "❌ JIRA module" }
+$fastmcpCheck = & python -c "from mcp.server.fastmcp import FastMCP; print('✅ FastMCP module')" 2>$null
+if ($fastmcpCheck) { Write-Host $fastmcpCheck }
+else { Write-Host "❌ FastMCP module" }
+ $dotenvCheck = & python -c "import dotenv; print('✅ python-dotenv module')" 2>$null
+if ($dotenvCheck) { Write-Host $dotenvCheck }
+else { Write-Host "❌ python-dotenv module" }
 }
 
 # Create .env file if it doesn't exist
@@ -201,12 +176,4 @@ except Exception as e:
 "
 
 Write-Host ""
-Write-Host "🎉 Environment setup completed!" -ForegroundColor Green
-Write-Host ""
-Write-Host "Next steps:" -ForegroundColor Yellow
-Write-Host "1. Update .env file with your JIRA credentials" -ForegroundColor White
-Write-Host "2. Run: .\start-mcp.ps1 -Mode test" -ForegroundColor White
-Write-Host "3. Run: .\start-mcp.ps1 -Mode dev" -ForegroundColor White
-Write-Host ""
-Write-Host "For JIRA API token, visit:" -ForegroundColor Yellow
-Write-Host "https://id.atlassian.com/manage-profile/security/api-tokens" -ForegroundColor Cyan
+## Removed final completion and next steps messages as requested

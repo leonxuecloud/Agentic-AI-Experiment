@@ -1,0 +1,13 @@
+{
+  "python.pythonPath": "C:/Program Files/Python312/python.exe",
+  "python.formatting.provider": "black",
+  "python.defaultInterpreterPath": "C:/Program Files/Python312/python.exe",
+  "files.associations": {
+    "*.env": "dotenv"
+  },
+  "python.linting.flake8Enabled": true,
+  "python.linting.enabled": true,
+  "python.terminal.activateEnvInCurrentTerminal": true,
+  "python.terminal.activateEnvironment": true,
+  "python.linting.pylintEnabled": false
+}

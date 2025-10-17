@@ -4,9 +4,9 @@ Simple test script for MCP Oncall Assistant
 Tests all major components without running the full server
 
 Usage:
-    python src/tools/test-environment.py
+    python tests/test-environment.py
     
-Location: src/tools/test-environment.py (moved from src/)
+Location: tests/test-environment.py (moved from src/tools/)
 """
 import os
 import sys
@@ -185,7 +185,7 @@ def test_file_structure():
     print("\n📁 Testing File Structure")
     print("=" * 40)
     
-    # Get project root (three levels up from this file: tools/ -> src/ -> project/)
+    # Get project root (three levels up from this file: tests/ -> src/ -> project/)
     project_root = Path(__file__).parent.parent.parent
     os.chdir(project_root)  # Change to project root for relative path checking
     

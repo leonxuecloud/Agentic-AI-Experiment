@@ -562,16 +562,62 @@ def get_status_file() -> str:
     current_date = datetime.now().strftime("%Y-%m-%d")
     return f"System Status: Operational\nLast Updated: {current_date}\nServices: All running normally"
 
+
 @mcp.resource("file://greeting.txt")
 def get_greeting_file() -> str:
     """Get a greeting file"""
     return "Hello! Welcome to the AI-Enhanced Incident Response system."
 
-# TODO: Add more resources here
-# @mcp.resource("incident-template://{severity}")
-# def get_incident_template(severity: str) -> str:
-#     """Get incident response template based on severity"""
-#     pass
+
+# -----------------------------------------------------------------------------
+# Example Resource: Incident Template (returns a template based on severity)
+# -----------------------------------------------------------------------------
+@mcp.resource("incident-template://{severity}")
+def get_incident_template(severity: str) -> str:
+    """
+    Get an incident response template based on severity.
+    Args:
+        severity (str): Severity level (low, medium, high, critical)
+    Returns:
+        str: Incident response template text
+    """
+    templates = {
+        "critical": "CRITICAL INCIDENT TEMPLATE: Immediate executive notification required.",
+        "high": "HIGH INCIDENT TEMPLATE: Urgent response within 1 hour.",
+        "medium": "MEDIUM INCIDENT TEMPLATE: Response within 4 hours.",
+        "low": "LOW INCIDENT TEMPLATE: Response within 24 hours."
+    }
+    return templates.get(severity.lower(), templates["medium"])
+
+# -----------------------------------------------------------------------------
+# Example Prompt Template: Outage Notification
+# -----------------------------------------------------------------------------
+@mcp.prompt()
+def outage_notification(service: str, duration_minutes: int) -> str:
+    """
+    Generate an outage notification template for a given service and duration.
+    Args:
+        service (str): Name of the affected service
+        duration_minutes (int): Estimated outage duration in minutes
+    Returns:
+        str: Notification message
+    """
+    return (
+        f"Attention: The {service} service is currently experiencing an outage. "
+        f"Estimated resolution time is {duration_minutes} minutes. "
+        "Our team is actively working to restore service. We apologize for the inconvenience."
+    )
+
+# -----------------------------------------------------------------------------
+# Example Usage: Sampling the resource and template
+# -----------------------------------------------------------------------------
+# Sample usage (for documentation/testing):
+#
+# incident_template = get_incident_template("high")
+# print("Sample Incident Template:", incident_template)
+#
+# notification = outage_notification("JIRA", 45)
+# print("Sample Outage Notification:", notification)
 
 # =============================================================================
 # PROMPTS - Prompt templates that can be used by the MCP client  
@@ -587,6 +633,287 @@ def greet_user(name: str, style: str = "friendly") -> str:
     }
     
     return f"{styles.get(style, styles['friendly'])} for someone named {name}."
+
+
+@mcp.prompt()
+def analyze_ticket_with_similar_solutions(ticket_number: str, search_limit: int = 10) -> str:
+    """
+    Generate a prompt to analyze a Jira ticket and suggest solutions based on similar resolved tickets.
+    
+    Args:
+        ticket_number: The Jira ticket ID to analyze (e.g., 'CS-3143')
+        search_limit: Maximum number of similar tickets to analyze (default: 10)
+    
+    Returns:
+        A detailed prompt for the AI to analyze the ticket and suggest solutions
+    """
+    return f"""Analyze Jira ticket {ticket_number} and suggest possible solutions based on similar resolved tickets.
+
+**Step 1: Get Current Ticket Details**
+Use the `jira_get_issue` tool to retrieve full details of ticket {ticket_number}, including:
+- Issue type
+- Component(s)
+- Description
+- Status
+- Priority
+- Labels
+- Custom fields
+
+**Step 2: Search for Similar Resolved Tickets**
+Use the `jira_search_issues` tool to find similar tickets. Construct a JQL query based on:
+- Same issue type
+- Similar components
+- Similar labels
+- Status = "Resolved" or "Closed"
+- Resolution is not empty
+
+Example JQL: `project = {ticket_number.split('-')[0]} AND status IN (Resolved, Closed) AND resolution IS NOT EMPTY AND component IN ({{components_from_ticket}}) ORDER BY updated DESC`
+
+Limit results to {search_limit} most recent matches.
+
+**Step 3: Analyze Each Similar Ticket**
+For each relevant match found, extract and present:
+1. **Ticket ID and Link**: `{JIRA_URL}/browse/[TICKET-ID]`
+2. **Summary**: Brief title/summary of the issue
+3. **Description**: Key details about what the problem was
+4. **Resolution Applied**: How the issue was resolved
+5. **Resolution Date**: When it was resolved
+6. **Linked Documentation**: Any referenced documentation, wiki pages, or confluence links
+7. **Comments**: Key insights from the resolution comments
+8. **Time to Resolve**: How long it took to resolve
+
+**Step 4: Pattern Analysis**
+Identify common patterns across the similar tickets:
+- Most common root causes
+- Most effective resolution strategies
+- Frequently referenced documentation
+- Average time to resolution
+- Components most affected
+
+**Step 5: Solution Recommendations**
+Based on the analysis of similar tickets, provide:
+
+**Primary Solution Recommendation:**
+- Detailed step-by-step approach based on most successful resolutions
+- Estimated time to implement
+- Risk assessment (low/medium/high)
+- Required resources or expertise
+
+**Alternative Solutions (if applicable):**
+- Secondary approaches that worked for similar issues
+- When to use each alternative
+- Pros and cons of each approach
+
+**Preventive Measures:**
+- How to prevent this issue in the future
+- Monitoring or alerting recommendations
+- Documentation updates needed
+
+**Related Resources:**
+- Links to relevant documentation
+- Similar tickets for reference
+- Knowledge base articles
+- Team members who have resolved similar issues
+
+**Next Steps:**
+1. Immediate actions to take
+2. Investigation areas if solution doesn't work
+3. Escalation path if needed
+
+Please present the findings in a clear, structured format with actionable recommendations."""
+
+
+@mcp.prompt()
+def incident_response_analysis(
+    ticket_number: str,
+    severity: str = "medium",
+    include_caseware_logs: bool = False
+) -> str:
+    """
+    Generate a comprehensive incident response analysis prompt.
+    
+    Args:
+        ticket_number: The Jira ticket ID for the incident
+        severity: Incident severity (low/medium/high/critical)
+        include_caseware_logs: Whether to include CaseWare log analysis
+    
+    Returns:
+        A detailed incident response analysis prompt
+    """
+    severity_context = {
+        "critical": "This is a CRITICAL incident requiring immediate attention and executive notification.",
+        "high": "This is a HIGH severity incident requiring urgent response within 1 hour.",
+        "medium": "This is a MEDIUM severity incident requiring response within 4 hours.",
+        "low": "This is a LOW severity incident requiring response within 24 hours."
+    }
+    
+    log_analysis_section = ""
+    if include_caseware_logs:
+        log_analysis_section = """
+**Step 4: CaseWare Log Analysis (if applicable)**
+If this incident involves CaseWare Working Papers:
+1. Use `wplog_analyze_file` to analyze relevant log files
+2. Use `wplog_find_bottlenecks` to identify performance issues
+3. Use `wplog_analyze_errors` to find error patterns
+4. Use `caseware_analyze_file` to analyze any related CaseWare files
+
+Present findings:
+- Performance bottlenecks found
+- Error patterns and frequencies
+- Time gaps and their correlation to the incident
+- File structure issues (if any)
+"""
+    
+    return f"""**INCIDENT RESPONSE ANALYSIS FOR {ticket_number}**
+
+{severity_context.get(severity.lower(), severity_context['medium'])}
+
+**Step 1: Retrieve Incident Details**
+Use `jira_get_issue` to get complete details of {ticket_number}:
+- Issue type and category
+- Description and impact
+- Affected systems/components
+- Reporter and assignee
+- Priority and severity
+- Time reported and SLA deadline
+
+**Step 2: Check for Related Incidents**
+Search for related or duplicate incidents using `jira_search_issues`:
+- Same component failures in last 30 days
+- Similar error messages or symptoms
+- Incidents affecting the same customer/environment
+- Ongoing incidents that might be related
+
+JQL Example: `project = {ticket_number.split('-')[0]} AND status IN (Open, "In Progress") AND component IN ({{affected_components}}) AND created >= -30d`
+
+**Step 3: Historical Pattern Analysis**
+Find similar resolved incidents:
+- Same root cause category
+- Same affected systems
+- Similar resolution time
+- Effective mitigation strategies used
+
+{log_analysis_section}
+
+**Step 5: Root Cause Hypothesis**
+Based on similar incidents and current data:
+1. **Primary Hypothesis**: Most likely root cause
+2. **Alternative Hypotheses**: Other possible causes
+3. **Evidence Required**: What data/logs would confirm each hypothesis
+
+**Step 6: Impact Assessment**
+- **User Impact**: Number of users affected, business functions impacted
+- **System Impact**: Services down/degraded, data integrity risks
+- **Financial Impact**: Estimated cost of downtime
+- **Reputational Impact**: Customer/stakeholder communication needs
+
+**Step 7: Recommended Actions**
+Provide prioritized action plan:
+
+**IMMEDIATE (Within 15 minutes):**
+1. [Action items for immediate stabilization]
+2. [Communication to stakeholders]
+3. [Monitoring to set up]
+
+**SHORT-TERM (Within 1-4 hours):**
+1. [Investigation steps]
+2. [Temporary workarounds]
+3. [Data collection needed]
+
+**LONG-TERM (Within 24 hours):**
+1. [Permanent fix implementation]
+2. [Verification and testing]
+3. [Documentation and post-mortem]
+
+**Step 8: Communication Plan**
+- **Internal**: Teams to notify and update frequency
+- **External**: Customer communication templates if needed
+- **Escalation**: When and to whom to escalate
+
+**Step 9: Prevention Recommendations**
+- Monitoring improvements
+- Process changes
+- Code/configuration updates
+- Documentation needs
+
+Present findings in a clear, action-oriented format suitable for incident response."""
+
+
+@mcp.prompt()
+def ticket_triage_assistant(
+    ticket_number: str,
+    auto_categorize: bool = True
+) -> str:
+    """
+    Generate a prompt for intelligent ticket triage and routing.
+    
+    Args:
+        ticket_number: The Jira ticket ID to triage
+        auto_categorize: Whether to suggest automatic categorization
+    
+    Returns:
+        A prompt for triaging and routing the ticket
+    """
+    return f"""**INTELLIGENT TICKET TRIAGE: {ticket_number}**
+
+**Step 1: Analyze Ticket Content**
+Use `jira_get_issue` to retrieve {ticket_number} and analyze:
+- Description keywords and technical terms
+- Component and labels
+- Reporter's history (if accessible)
+- Attachments and their types
+- Priority and current assignment
+
+**Step 2: Search Historical Patterns**
+Use `jira_search_issues` to find similar tickets:
+```
+project = {ticket_number.split('-')[0]} AND status IN (Resolved, Closed) AND resolution IS NOT EMPTY ORDER BY resolved DESC
+```
+
+Analyze the top 20 matches for:
+- Common component assignments
+- Typical assignee/team
+- Average resolution time
+- Escalation patterns
+
+**Step 3: Categorization Analysis**
+{"Automatically categorize this ticket based on:" if auto_categorize else "Provide categorization recommendations:"}
+- **Type**: Bug / Enhancement / Task / Story / Incident
+- **Priority**: Critical / High / Medium / Low
+- **Category**: (e.g., Performance, Security, UI/UX, Integration, Data)
+- **Complexity**: Simple / Medium / Complex
+- **Estimated Effort**: (based on similar tickets)
+
+**Step 4: Team/Assignee Recommendation**
+Suggest the best team and assignee based on:
+- Component expertise (from historical assignments)
+- Current workload (from active tickets)
+- Past success rate with similar issues
+- Availability (from recent activity)
+
+Format:
+- **Recommended Team**: [Team Name]
+- **Recommended Assignee**: [Name] (resolved X similar tickets)
+- **Alternative Assignees**: [Names] (if primary is unavailable)
+
+**Step 5: SLA and Priority Assessment**
+- **Suggested Priority**: [with justification]
+- **SLA Target**: [based on priority and type]
+- **Risk Factors**: [any factors that might impact resolution]
+
+**Step 6: Immediate Actions**
+List any immediate actions needed:
+1. Request additional information (if description is incomplete)
+2. Attach relevant logs or files
+3. Link to related tickets
+4. Add missing labels or components
+5. Set up monitoring or alerts
+
+**Step 7: Triage Summary**
+Provide a one-paragraph summary suitable for team standup:
+"Ticket {ticket_number} is a [category] [type] reported by [reporter]. Similar to [X] previous tickets. Recommend assigning to [team/person] with [priority] priority. Estimated resolution: [timeframe]. Key actions: [list]."
+
+Present recommendations in a clear, actionable format."""
 
 # TODO: Add more prompts here
 # @mcp.prompt()
