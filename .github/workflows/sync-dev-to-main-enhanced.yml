@@ -156,13 +156,12 @@ jobs:
         run: |
           echo "Attempting to merge dev into main..."
           
-          # Try merge
-          if git merge --no-ff dev -m "chore: auto-sync dev to main (PR #${{ github.event.pull_request.number }})
-
-          Merged PR: ${{ github.event.pull_request.title }}
-          Author: @${{ github.event.pull_request.user.login }}
-          
-          This merge was automatically performed by GitHub Actions after PR approval."; then
+          # Try merge with properly formatted multi-line commit message
+          if git merge --no-ff dev \
+            -m "chore: auto-sync dev to main (PR #${{ github.event.pull_request.number }})" \
+            -m "Merged PR: ${{ github.event.pull_request.title }}" \
+            -m "Author: @${{ github.event.pull_request.user.login }}" \
+            -m "This merge was automatically performed by GitHub Actions after PR approval."; then
             echo "merge_status=success" >> $GITHUB_OUTPUT
             echo "? Merge successful"
           else

@@ -41,7 +41,11 @@ jobs:
         id: merge
         run: |
           echo "Attempting to merge dev into main..."
-          if git merge --no-ff dev -m "chore: sync dev to main after PR #${{ github.event.pull_request.number }}"; then
+          if git merge --no-ff dev \
+            -m "chore: sync dev to main after PR #${{ github.event.pull_request.number }}" \
+            -m "Merged PR: ${{ github.event.pull_request.title }}" \
+            -m "Author: @${{ github.event.pull_request.user.login }}" \
+            -m "This merge was automatically performed by GitHub Actions."; then
             echo "merge_status=success" >> $GITHUB_OUTPUT
             echo "? Merge successful"
           else
