@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>OAuth Demo Mode</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      max-width: 600px; 
+      margin: 50px auto; 
+      padding: 20px; 
+    }
+    .warning { 
+      background: #fff3cd; 
+      border-left: 4px solid #ffc107; 
+      padding: 20px; 
+      margin: 20px 0; 
+    }
+    .info { 
+      background: #d1ecf1; 
+      border-left: 4px solid #17a2b8; 
+      padding: 20px; 
+      margin: 20px 0; 
+    }
+    code { 
+      background: #f4f4f4; 
+      padding: 2px 6px; 
+      border-radius: 3px; 
+    }
+    h1 { color: #333; }
+    pre { 
+      background: #f4f4f4; 
+      padding: 15px; 
+      overflow-x: auto; 
+    }
+    a { 
+      color: #007bff; 
+      text-decoration: none; 
+    }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>🔐 OAuth Demo Mode</h1>
+  
+  <div class="warning">
+    <strong>⚠️ OAuth Not Configured</strong>
+    <p>The <strong>{{PROVIDER}}</strong> OAuth integration is running in demo mode because credentials are not configured.</p>
+  </div>
+
+  <div class="info">
+    <strong>📝 To enable OAuth:</strong>
+    <ol>
+      <li>Register an OAuth application with {{PROVIDER}}</li>
+      <li>Add credentials to <code>.env</code> file:
+        <pre>{{ENV_VARS}}</pre>
+      </li>
+      <li>Restart the server</li>
+    </ol>
+  </div>
+
+  <p><a href="/">← Back to home</a></p>
+</body>
+</html>

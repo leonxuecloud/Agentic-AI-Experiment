@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Successful</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .container {
+      background: white;
+      padding: 3rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      text-align: center;
+      max-width: 500px;
+    }
+    .success-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      color: #2d3748;
+      margin: 0 0 1rem 0;
+      font-size: 2rem;
+    }
+    .user-info {
+      background: #f7fafc;
+      padding: 1.5rem;
+      border-radius: 8px;
+      margin: 1.5rem 0;
+      text-align: left;
+    }
+    .user-info div {
+      margin: 0.5rem 0;
+      color: #4a5568;
+    }
+    .user-info strong {
+      color: #2d3748;
+      display: inline-block;
+      width: 100px;
+    }
+    .redirect-msg {
+      color: #718096;
+      font-size: 0.9rem;
+      margin-top: 1rem;
+    }
+    .token-section {
+      margin-top: 1.5rem;
+      text-align: left;
+    }
+    .token-section summary {
+      cursor: pointer;
+      color: #667eea;
+      font-weight: 500;
+      padding: 0.5rem;
+    }
+    .token-section pre {
+      background: #2d3748;
+      color: #48bb78;
+      padding: 1rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+    }
+  </style>
+  <script>
+    // Store tokens in sessionStorage
+    sessionStorage.setItem('access_token', '{{ACCESS_TOKEN}}');
+    sessionStorage.setItem('refresh_token', '{{REFRESH_TOKEN}}');
+    sessionStorage.setItem('user', JSON.stringify({{USER_JSON}}));
+    
+    // Auto-redirect after 3 seconds
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 3000);
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div class="success-icon">✅</div>
+    <h1>Login Successful!</h1>
+    <div class="user-info">
+      <div><strong>Name:</strong> {{USER_NAME}}</div>
+      <div><strong>Email:</strong> {{USER_EMAIL}}</div>
+      <div><strong>Provider:</strong> {{PROVIDER}}</div>
+      <div><strong>Role:</strong> {{USER_ROLES}}</div>
+    </div>
+    <p class="redirect-msg">Redirecting to homepage in 3 seconds...</p>
+    
+    <details class="token-section">
+      <summary>View Access Token (for API usage)</summary>
+      <pre>{{ACCESS_TOKEN}}</pre>
+    </details>
+  </div>
+</body>
+</html>

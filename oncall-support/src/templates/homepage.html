@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Oncall Support MCP Server</title>
+  <style>
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      max-width: 800px; 
+      margin: 50px auto; 
+      padding: 20px; 
+      background: #f5f5f5; 
+    }
+    .container { 
+      background: white; 
+      padding: 40px; 
+      border-radius: 8px; 
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+    }
+    h1 { color: #333; margin-bottom: 10px; }
+    .subtitle { color: #666; margin-bottom: 30px; }
+    .login-buttons { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 15px; 
+      margin: 30px 0; 
+    }
+    .btn { 
+      display: flex; 
+      align-items: center; 
+      padding: 12px 20px; 
+      border-radius: 5px; 
+      text-decoration: none; 
+      font-weight: 500; 
+      transition: all 0.3s; 
+    }
+    .btn:hover { 
+      transform: translateY(-2px); 
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15); 
+    }
+    .btn-google { background: #4285f4; color: white; }
+    .btn-github { background: #24292e; color: white; }
+    .btn-microsoft { background: #00a4ef; color: white; }
+    .icon { width: 20px; height: 20px; margin-right: 12px; }
+    .info { 
+      background: #e7f3ff; 
+      border-left: 4px solid #2196F3; 
+      padding: 15px; 
+      margin: 20px 0; 
+    }
+    .status { 
+      display: inline-block; 
+      padding: 4px 8px; 
+      border-radius: 3px; 
+      font-size: 12px; 
+      margin-left: 10px; 
+    }
+    .status-demo { background: #fff3cd; color: #856404; }
+    .status-ready { background: #d4edda; color: #155724; }
+    .footer { 
+      margin-top: 30px; 
+      padding-top: 20px; 
+      border-top: 1px solid #eee; 
+      color: #666; 
+      font-size: 14px; 
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🛠️ Oncall Support MCP Server</h1>
+    <p class="subtitle">Production-ready Model Context Protocol server for customer support teams</p>
+    
+    <div class="info">
+      <strong>📋 Server Status:</strong> Running on <code>{{BASE_URL}}</code>
+      <br><strong>💾 Storage:</strong> File-based (.mcp-storage/)
+      <br><strong>🔐 Authentication:</strong> OAuth 2.0 with JWT tokens
+    </div>
+
+    <h2>Login with OAuth</h2>
+    <div class="login-buttons">
+      {{PROVIDER_BUTTONS}}
+    </div>
+
+    {{DEMO_WARNING}}
+
+    <div class="footer">
+      <strong>Quick Links:</strong>
+      <a href="/health">Health Check</a> •
+      <a href="/api/docs">API Docs</a> •
+      <a href="https://github.com/your-org/oncall-support" target="_blank">GitHub</a>
+    </div>
+  </div>
+</body>
+</html>
