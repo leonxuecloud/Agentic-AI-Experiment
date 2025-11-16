@@ -1,0 +1,241 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oncall-support-mcp
+  namespace: production
+  labels:
+    app: oncall-support
+    tier: backend
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: oncall-support
+  template:
+    metadata:
+      labels:
+        app: oncall-support
+        tier: backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3001"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: oncall-support
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: oncall-support
+        image: your-registry/oncall-support-mcp:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 3001
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: MCP_PORT
+          value: "3001"
+        - name: ALLOWED_COMMANDS
+          value: "^(npm|yarn|git|ls|cat|grep|find|mkdir|rmdir|cp|mv|chmod|chown).*$"
+        - name: MAX_DOWNLOAD_SIZE
+          value: "104857600"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: oncall-support-secrets
+              key: database-url
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: oncall-support-secrets
+              key: jwt-secret
+        - name: GOOGLE_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: oncall-support-secrets
+              key: google-client-id
+        - name: GOOGLE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: oncall-support-secrets
+              key: google-client-secret
+        - name: GITHUB_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: oncall-support-secrets
+              key: github-client-id
+        - name: GITHUB_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: oncall-support-secrets
+              key: github-client-secret
+        - name: JIRA_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: oncall-support-config
+              key: jira-base-url
+        - name: JIRA_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: oncall-support-secrets
+              key: jira-username
+        - name: JIRA_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: oncall-support-secrets
+              key: jira-api-token
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: oncall-files
+          mountPath: /app/oncall-files
+        - name: mcp-storage
+          mountPath: /app/.mcp-storage
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: oncall-files
+        persistentVolumeClaim:
+          claimName: oncall-support-storage
+      - name: mcp-storage
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oncall-support
+  namespace: production
+  labels:
+    app: oncall-support
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: oncall-support
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: oncall-support
+  namespace: production
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oncall-support-config
+  namespace: production
+data:
+  jira-base-url: "https://your-company.atlassian.net"
+  prometheus-url: "http://prometheus:9090"
+  grafana-url: "http://grafana:3000"
+  cors-origin: "*"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: oncall-support-storage
+  namespace: production
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: oncall-support-hpa
+  namespace: production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: oncall-support-mcp
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: oncall-support-ingress
+  namespace: production
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+spec:
+  tls:
+  - hosts:
+    - oncall-support.your-domain.com
+    secretName: oncall-support-tls
+  rules:
+  - host: oncall-support.your-domain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: oncall-support
+            port:
+              number: 80

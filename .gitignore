@@ -1,15 +1,200 @@
 ﻿################################################################################
-# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+# Optimized .gitignore for multi-language development workspace
+# Python + Node.js + General OS / IDE clutter
 ################################################################################
 
-/.vs
-/mcp-oncall-assistant/CODE_CLEANUP_SUMMARY.md
-/mcp-oncall-assistant/docs/HARDCODED_PATH_REMOVAL.md
-/mcp-oncall-assistant/docs/MCP_INSPECTOR_WORKAROUND.md
-/mcp-oncall-assistant/docs/FIXING_VENV_ACCESS_DENIED.md
-/mcp-oncall-assistant/docs/TEST_ORGANIZATION_COMPLETE.md
-/mcp-oncall-assistant/scripts/cleanup-venv-locks.ps1
-/mcp-oncall-assistant/docs/TESTING_GUIDE.md
-/mcp-oncall-assistant/HARDCODED_PATHS_AUDIT.md
-/mcp-oncall-assistant/HARD_CODED_PATH_REMOVAL.md
-/.github/workflows/SYNC_WORKFLOW_GUIDE.md
+#--------------------------------------
+# IDE / Editor
+#--------------------------------------
+/.vs/
+.vscode/
+.idea/
+*.code-workspace
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+#--------------------------------------
+# OS artifacts
+#--------------------------------------
+# Windows
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+# Linux
+.directory
+.Trash-*
+
+#--------------------------------------
+# Python
+#--------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Packaging / build
+build/
+dist/
+.eggs/
+*.egg-info/
+.wheels/
+MANIFEST
+
+# Virtual environments
+.env
+.venv/
+env/
+venv/
+ENV/
+.env.bak/
+venv.bak/
+pyvenv.cfg
+.python-version
+
+# Dependency/lock (keep pyproject + requirements + uv.lock tracked if desired)
+# Uncomment if you decide to ignore uv.lock
+# uv.lock
+Pipfile.lock
+poetry.lock
+
+# Testing / coverage / caching
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Type checkers / linters
+.pyre/
+.pytype/
+
+#--------------------------------------
+# Node / TypeScript
+#--------------------------------------
+# Limit to project folder to avoid accidental ignore if embedded examples
+oncall-support/node_modules/
+# If you add other JS projects, add their node_modules similarly
+*.tsbuildinfo
+.npm/
+.eslintcache
+
+# Logs & debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Coverage / build output
+coverage/
+.nyc_output/
+oncall-support/dist/
+# Generic build outputs
+build/
+out/
+
+# Bundler / tool caches
+.cache/
+.parcel-cache/
+.rpt2_cache/
+.rts2_cache_*/
+
+# Framework outputs (add when used)
+.next/
+.nuxt/
+
+#--------------------------------------
+# Environment files (keep examples)
+#--------------------------------------
+.env.local
+.env.development
+.env.test
+.env.production
+.env.*.local
+oncall-support/.env
+oncall-support/env.development
+oncall-support/env.production
+mcp-oncall-assistant/.env
+
+#--------------------------------------
+# Secrets / certificates
+#--------------------------------------
+*.pem
+*.key
+*.crt
+*.pfx
+secrets.*
+secret.*
+
+#--------------------------------------
+# Logs
+#--------------------------------------
+logs/
+*.log
+*.log.*
+
+#--------------------------------------
+# Temporary / backup / misc
+#--------------------------------------
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+*.rej
+*.swp
+*.swo
+
+#--------------------------------------
+# Generated / transient project-specific docs & scripts
+#--------------------------------------
+mcp-oncall-assistant/CODE_CLEANUP_SUMMARY.md
+mcp-oncall-assistant/HARDCODED_PATHS_AUDIT.md
+mcp-oncall-assistant/HARD_CODED_PATH_REMOVAL.md
+WORKFLOW_SETUP_COMPLETE.md
+mcp-oncall-assistant/docs/HARDCODED_PATH_REMOVAL.md
+mcp-oncall-assistant/docs/MCP_INSPECTOR_WORKAROUND.md
+mcp-oncall-assistant/docs/FIXING_VENV_ACCESS_DENIED.md
+mcp-oncall-assistant/docs/TEST_ORGANIZATION_COMPLETE.md
+mcp-oncall-assistant/docs/TESTING_GUIDE.md
+mcp-oncall-assistant/scripts/cleanup-venv-locks.ps1
+.github/workflows/SYNC_WORKFLOW_GUIDE.md
+
+#--------------------------------------
+# Test data (keep real tests, ignore large/ephemeral datasets)
+#--------------------------------------
+test_data/
+oncall-support/test-files/
+
+#--------------------------------------
+# Optional: Uncomment if you want to ignore lock files or package managers
+#--------------------------------------
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+#--------------------------------------
+# Git artifacts (keep samples)
+#--------------------------------------
+# Ignore custom hook scripts if generated
+.git/hooks/*
+!.git/hooks/*.sample
+
+# End of file
