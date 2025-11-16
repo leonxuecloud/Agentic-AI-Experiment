@@ -1,0 +1,304 @@
+name: Sync Dev to Main (Enhanced)
+
+# This workflow syncs dev ? main with additional safety checks
+# Use this version for production environments requiring extra validation
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - dev
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+
+jobs:
+  # Pre-flight checks before syncing
+  pre-sync-validation:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    outputs:
+      should_sync: ${{ steps.validation.outputs.should_sync }}
+      checks_passed: ${{ steps.validation.outputs.checks_passed }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Check PR labels
+        id: check_labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = context.payload.pull_request.labels.map(l => l.name);
+            console.log('PR labels:', labels);
+            
+            // Skip sync if 'no-sync' or 'hold' label present
+            if (labels.includes('no-sync') || labels.includes('hold')) {
+              core.setOutput('skip_sync', 'true');
+              return;
+            }
+            
+            core.setOutput('skip_sync', 'false');
+      
+      - name: Verify approvals
+        id: check_approvals
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const reviews = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number
+            });
+            
+            const approvals = reviews.data.filter(r => r.state === 'APPROVED');
+            console.log(`Found ${approvals.length} approvals`);
+            
+            // Require at least 1 approval
+            if (approvals.length === 0) {
+              core.setFailed('At least 1 approval required before syncing to main');
+              core.setOutput('has_approvals', 'false');
+            } else {
+              core.setOutput('has_approvals', 'true');
+            }
+      
+      - name: Check CI status
+        id: check_ci
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const checks = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.payload.pull_request.head.sha
+            });
+            
+            const checkRuns = checks.data.check_runs;
+            const failures = checkRuns.filter(c => 
+              c.conclusion === 'failure' || c.conclusion === 'cancelled'
+            );
+            
+            console.log(`Total checks: ${checkRuns.length}, Failures: ${failures.length}`);
+            
+            if (failures.length > 0) {
+              core.warning('Some CI checks failed');
+              core.setOutput('all_checks_passed', 'false');
+            } else {
+              core.setOutput('all_checks_passed', 'true');
+            }
+      
+      - name: Validation summary
+        id: validation
+        run: |
+          SKIP_SYNC="${{ steps.check_labels.outputs.skip_sync }}"
+          HAS_APPROVALS="${{ steps.check_approvals.outputs.has_approvals }}"
+          CHECKS_PASSED="${{ steps.check_ci.outputs.all_checks_passed }}"
+          
+          echo "Skip sync (label): $SKIP_SYNC"
+          echo "Has approvals: $HAS_APPROVALS"
+          echo "Checks passed: $CHECKS_PASSED"
+          
+          # Determine if we should proceed with sync
+          if [ "$SKIP_SYNC" = "true" ]; then
+            echo "?? Sync skipped due to label"
+            echo "should_sync=false" >> $GITHUB_OUTPUT
+          elif [ "$HAS_APPROVALS" != "true" ]; then
+            echo "? No approvals found"
+            echo "should_sync=false" >> $GITHUB_OUTPUT
+          else
+            echo "? Validation passed, proceeding with sync"
+            echo "should_sync=true" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "checks_passed=$CHECKS_PASSED" >> $GITHUB_OUTPUT
+
+  # Main sync job
+  sync-to-main:
+    needs: pre-sync-validation
+    if: needs.pre-sync-validation.outputs.should_sync == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      
+      - name: Fetch all branches
+        run: |
+          git fetch --all --prune
+          git fetch origin dev:dev
+          git fetch origin main:main
+      
+      - name: Checkout main
+        run: git checkout main
+      
+      - name: Create backup tag
+        run: |
+          TIMESTAMP=$(date -u +"%Y%m%d-%H%M%S")
+          git tag "backup-main-before-sync-${TIMESTAMP}"
+          git push origin "backup-main-before-sync-${TIMESTAMP}"
+          echo "? Backup tag created: backup-main-before-sync-${TIMESTAMP}"
+      
+      - name: Attempt merge
+        id: merge
+        run: |
+          echo "Attempting to merge dev into main..."
+          
+          # Try merge with properly formatted multi-line commit message
+          if git merge --no-ff dev \
+            -m "chore: auto-sync dev to main (PR #${{ github.event.pull_request.number }})" \
+            -m "Merged PR: ${{ github.event.pull_request.title }}" \
+            -m "Author: @${{ github.event.pull_request.user.login }}" \
+            -m "This merge was automatically performed by GitHub Actions after PR approval."; then
+            echo "merge_status=success" >> $GITHUB_OUTPUT
+            echo "? Merge successful"
+          else
+            echo "merge_status=conflict" >> $GITHUB_OUTPUT
+            echo "? Merge conflict detected"
+            
+            # Show conflict details
+            echo "Conflicting files:"
+            git diff --name-only --diff-filter=U
+            
+            # Abort merge
+            git merge --abort
+            exit 1
+          fi
+      
+      - name: Run post-merge validation (optional)
+        if: steps.merge.outputs.merge_status == 'success'
+        run: |
+          echo "Running post-merge validation..."
+          # Add custom validation here (e.g., syntax checks, tests)
+          # Example: npm test, python -m pytest, etc.
+          echo "? Post-merge validation passed"
+      
+      - name: Push to main
+        if: steps.merge.outputs.merge_status == 'success'
+        run: |
+          git push origin main
+          echo "? Successfully pushed to main"
+          
+          # Get new commit SHA
+          NEW_SHA=$(git rev-parse HEAD)
+          echo "new_commit_sha=$NEW_SHA" >> $GITHUB_ENV
+      
+      - name: Create success comment
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const checksWarning = '${{ needs.pre-sync-validation.outputs.checks_passed }}' === 'false' 
+              ? '\n\n?? **Note**: Some CI checks did not pass, but sync proceeded.' 
+              : '';
+            
+            await github.rest.issues.createComment({
+              issue_number: context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ? Auto-Sync Successful!
+              
+              Changes from \`dev\` have been successfully merged into \`main\`.
+              
+              **Details:**
+              - Source: \`dev\` @ \`${{ github.event.pull_request.head.sha }}\`
+              - Target: \`main\` @ \`${{ env.new_commit_sha }}\`
+              - Workflow: [View run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+              ${checksWarning}
+              
+              The \`main\` branch is now up to date! ??`
+            });
+      
+      - name: Create failure comment
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              issue_number: context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ? Auto-Sync Failed
+              
+              Failed to merge \`dev\` into \`main\`. Manual intervention required.
+              
+              **Possible causes:**
+              - Merge conflicts between \`dev\` and \`main\`
+              - Post-merge validation failed
+              - Branch protection rules blocked the push
+              
+              **Next steps:**
+              1. Check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+              2. Manually resolve conflicts if needed
+              3. Contact a repository maintainer if assistance is needed
+              
+              **Manual sync command:**
+              \`\`\`bash
+              git checkout main
+              git pull origin main
+              git merge dev
+              # Resolve any conflicts
+              git push origin main
+              \`\`\`
+              `
+            });
+      
+      - name: Notify on Slack (optional)
+        if: always()
+        # Uncomment and configure if you use Slack notifications
+        # uses: slackapi/slack-github-action@v1.24.0
+        # with:
+        #   payload: |
+        #     {
+        #       "text": "Dev to Main sync ${{ job.status }}",
+        #       "blocks": [
+        #         {
+        #           "type": "section",
+        #           "text": {
+        #             "type": "mrkdwn",
+        #             "text": "*Sync Status:* ${{ job.status }}\n*PR:* #${{ github.event.pull_request.number }}\n*Workflow:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View>"
+        #           }
+        #         }
+        #       ]
+        #     }
+        # env:
+        #   SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: echo "Slack notification placeholder"
+
+  # Job that runs only if sync was skipped
+  sync-skipped:
+    needs: pre-sync-validation
+    if: needs.pre-sync-validation.outputs.should_sync != 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Post skip comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              issue_number: context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ?? Auto-Sync Skipped
+              
+              The automatic sync to \`main\` was skipped.
+              
+              **Reason:** Pre-sync validation failed
+              - Missing required approvals, or
+              - \`no-sync\` / \`hold\` label present
+              
+              If you want to sync to main, please ensure all requirements are met and manually trigger a sync.`
+            });

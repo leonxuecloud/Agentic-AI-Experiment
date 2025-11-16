@@ -165,17 +165,17 @@ logs/
 #--------------------------------------
 # Generated / transient project-specific docs & scripts
 #--------------------------------------
-CODE_CLEANUP_SUMMARY.md
-HARDCODED_PATHS_AUDIT.md
-HARD_CODED_PATH_REMOVAL.md
+mcp-oncall-assistant/CODE_CLEANUP_SUMMARY.md
+mcp-oncall-assistant/HARDCODED_PATHS_AUDIT.md
+mcp-oncall-assistant/HARD_CODED_PATH_REMOVAL.md
 WORKFLOW_SETUP_COMPLETE.md
-/mcp-oncall-assistant/docs/HARDCODED_PATH_REMOVAL.md
-/mcp-oncall-assistant/docs/MCP_INSPECTOR_WORKAROUND.md
-/mcp-oncall-assistant/docs/FIXING_VENV_ACCESS_DENIED.md
-/mcp-oncall-assistant/docs/TEST_ORGANIZATION_COMPLETE.md
-/mcp-oncall-assistant/docs/TESTING_GUIDE.md
-/mcp-oncall-assistant/scripts/cleanup-venv-locks.ps1
-/.github/workflows/SYNC_WORKFLOW_GUIDE.md
+mcp-oncall-assistant/docs/HARDCODED_PATH_REMOVAL.md
+mcp-oncall-assistant/docs/MCP_INSPECTOR_WORKAROUND.md
+mcp-oncall-assistant/docs/FIXING_VENV_ACCESS_DENIED.md
+mcp-oncall-assistant/docs/TEST_ORGANIZATION_COMPLETE.md
+mcp-oncall-assistant/docs/TESTING_GUIDE.md
+mcp-oncall-assistant/scripts/cleanup-venv-locks.ps1
+.github/workflows/SYNC_WORKFLOW_GUIDE.md
 
 #--------------------------------------
 # Test data (keep real tests, ignore large/ephemeral datasets)
